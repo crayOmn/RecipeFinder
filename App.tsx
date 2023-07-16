@@ -10,7 +10,6 @@ const App = () => {
   const [searchResults, setSearchResults] = useState<
     {title: string; ingredients: string; image: any; description: string}[]
   >([]);
-
   const handleSearch = () => {
     console.log('Search:', keyword);
 
