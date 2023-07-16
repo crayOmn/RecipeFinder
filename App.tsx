@@ -1,72 +1,96 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button } from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet, SafeAreaView, ScrollView  } from 'react-native';
+import RecipeCard from './components/RecipeCard';
+import {ApplicationProvider, IconRegistry, Button, Layout, Text, Input, Icon} from '@ui-kitten/components';
+import {EvaIconsPack} from '@ui-kitten/eva-icons';
+import * as eva from '@eva-design/eva';
 
 const App = () => {
   const [keyword, setKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState<{ title: string; ingredients: string; }[]>([]);
-
+  const [searchResults, setSearchResults] = useState<
+    {title: string; ingredients: string; image: any; description: string}[]
+  >([]);
   const handleSearch = () => {
     console.log('Search:', keyword);
 
     // Simulating search functionality with a mock array of recipes
     const mockRecipes = [
-      { title: 'Pasta Carbonara', ingredients: 'Pasta, eggs, bacon, Parmesan cheese' },
-      { title: 'Chicken Curry', ingredients: 'Chicken, curry powder, coconut milk, vegetables' },
-      { title: 'Chocolate Chip Cookies', ingredients: 'Flour, butter, sugar, chocolate chips' },
+      {
+        title: 'Pasta Carbonara',
+        image: require('./assets/pasta_carbonara.jpeg'),
+        ingredients: 'Pasta, eggs, bacon, Parmesan cheese',
+        description: '',
+      },
+      {
+        title: 'Chicken Curry',
+        image: require('./assets/chicken-curry.jpg'),
+        ingredients: 'Chicken, curry powder, coconut milk, vegetables',
+        description: '',
+      },
+      {
+        title: 'Chocolate Chip Cookies',
+        image: require('./assets/chocolate-chip-cookies.jpg'),
+        ingredients: 'Flour, butter, sugar, chocolate chips',
+        description: '',
+      },
       // Add more mock recipes here
     ];
 
-    const filteredResults = mockRecipes.filter((recipe) =>
-      recipe.title.toLowerCase().includes(keyword.toLowerCase())
+    const filteredResults = mockRecipes.filter(recipe =>
+      recipe.title.toLowerCase().includes(keyword.toLowerCase()),
     );
     setSearchResults(filteredResults);
   };
-
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Recipe Finder</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter a recipe keyword"
-        value={keyword}
-        onChangeText={setKeyword}
-      />
-      <Button title="Search" onPress={handleSearch} />
-      {searchResults.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsHeading}>Search Results:</Text>
-          {searchResults.map((recipe, index) => (
-            <View key={index} style={styles.recipeItem}>
-              <Text style={styles.recipeTitle}>{recipe.title}</Text>
-              <Text style={styles.recipeIngredients}>{recipe.ingredients}</Text>
+    <SafeAreaView style={styles.container}>
+      <IconRegistry icons={EvaIconsPack} />
+      <ApplicationProvider {...eva} theme={eva.light}>
+      <Layout style={styles.layout}>
+          <Text category="h4" style={styles.heading}>
+            Recipe Finder
+          </Text>
+          <View style={styles.searchBarContainer}>
+            <Input
+              placeholder="Search recipes..."
+              accessoryLeft={(props) => <Icon {...props} name="search-outline" />}
+              style={styles.searchInput}
+              onChangeText={nextValue => setKeyword(nextValue)}
+            />
+            <Button
+              onPress={handleSearch}
+              appearance='ghost'
+            >
+              Search
+            </Button>
+          </View>
+          {searchResults.length > 0 && (
+            <View style={styles.resultsContainer}>
+              <Text style={styles.resultsHeading}>Search Results:</Text>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                {searchResults.map((recipe, index) => (
+                  <RecipeCard key={index} recipe={recipe} />
+                ))}
+              </ScrollView>
             </View>
-          ))}
-        </View>
-      )}
-    </View>
+          )}
+        </Layout>
+      </ApplicationProvider>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
+  },
+  layout: {
+    flex: 1,
+    padding: 10,
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  input: {
-    width: '100%',
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    paddingHorizontal: 8,
     marginBottom: 16,
   },
   resultsContainer: {
@@ -87,6 +111,23 @@ const styles = StyleSheet.create({
   recipeIngredients: {
     marginTop: 4,
     color: '#777',
+  },
+  searchBarContainer: {
+    position: 'absolute',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    top: 0,
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  searchInput: {
+    borderRadius: 10,
+    width: '80%',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
 });
 
