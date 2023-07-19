@@ -5,7 +5,7 @@ import {RouteProp} from '@react-navigation/native';
 type RootStackParamList = {
   Home: undefined;
   RecipeDetails: {recipe: Recipe};
-  AddRecipe: {handleAddRecipe: (recipe: Recipe) => void};
+  AddRecipe: undefined;
 };
 
 type HomeScreenProps = {

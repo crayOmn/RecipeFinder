@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import RecipeCard, {Recipe} from '../components/RecipeCard';
 import {
@@ -12,6 +12,8 @@ import {
 } from '@ui-kitten/components';
 import {HomeScreenProps} from '../navigation/types';
 import {useToast} from 'react-native-toast-notifications';
+import { makeEventNotifier } from '../utils/EventListener';
+
 // Simulating search functionality with a mock array of recipes
 const mockRecipes: Recipe[] = [
   {
@@ -37,6 +39,7 @@ const mockRecipes: Recipe[] = [
   },
   // Add more mock recipes here
 ];
+const newRecipeNotifier = makeEventNotifier<Recipe>("newRecipe");
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const [keyword, setKeyword] = useState('');
@@ -57,17 +60,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     navigation.navigate('RecipeDetails', {recipe});
   };
 
-  const handleAddRecipe = (recipe: Recipe) => {
+  newRecipeNotifier.useEventListener((recipe) => {
     setRecipes(prevRecipes => [...prevRecipes, recipe]);
     toast.show('Recipe added successfully!', {
       type: 'success',
       placement: 'bottom',
       duration: 40000,
     });
-  };
-
+  }, []);
+  
   const navigateToAddRecipe = () => {
-    navigation.navigate('AddRecipe', {handleAddRecipe});
+    navigation.navigate('AddRecipe');
   };
 
   const PlusIcon = (props: IconProps): IconElement => (
