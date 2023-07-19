@@ -1,22 +1,7 @@
 import React from 'react';
 import {Text} from '@ui-kitten/components';
-import {RouteProp} from '@react-navigation/native';
-import {Recipe} from '../components/RecipeCard';
 import { Image, ScrollView, StyleSheet } from 'react-native';
-
-type RootStackParamList = {
-  Home: undefined;
-  RecipeDetails: {recipe: Recipe};
-};
-
-type RecipeDetailsScreenRouteProp = RouteProp<
-  RootStackParamList,
-  'RecipeDetails'
->;
-
-interface RecipeDetailsScreenProps {
-  route: RecipeDetailsScreenRouteProp;
-}
+import { RecipeDetailsScreenProps } from '../navigation/types';
 
 const RecipeDetailsScreen: React.FC<RecipeDetailsScreenProps> = ({route}) => {
   const {recipe} = route.params;

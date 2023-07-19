@@ -7,6 +7,7 @@ export type Recipe = {
   title: string;
   description: string;
   ingredients: string;
+  isNew?: boolean;
 };
 
 interface RecipeCardProps {
@@ -17,7 +18,7 @@ interface RecipeCardProps {
 const RecipeCard: React.FC<RecipeCardProps> = ({ onPress, recipe }) => {
   return (
     <Card style={styles.card}>
-      <Image source={recipe.image} style={styles.recipeImage} />
+      <Image source={recipe.isNew ? { uri: recipe.image } : recipe.image} style={styles.recipeImage} />
       <Text category="h6" style={styles.recipeTitle}>
         {recipe.title}
       </Text>
