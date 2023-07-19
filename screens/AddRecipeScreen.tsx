@@ -10,6 +10,9 @@ import {
 } from 'react-native-image-picker';
 import {AddRecipeScreenProps} from '../navigation/types';
 import {Recipe} from '../components/RecipeCard';
+import { makeEventNotifier } from '../utils/EventListener';
+
+const newRecipeNotifier = makeEventNotifier<Recipe>("newRecipe");
 
 const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
   navigation,
@@ -29,9 +32,7 @@ const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
         image: imageUri,
         isNew: true,
       };
-
-      const {handleAddRecipe} = route.params;
-      handleAddRecipe(newRecipe);
+      newRecipeNotifier.notify(newRecipe);
       navigation.goBack();
     } else {
       // Display an error message or show a toast indicating missing fields
