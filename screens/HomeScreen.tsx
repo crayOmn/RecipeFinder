@@ -11,8 +11,7 @@ import {
   IconProps,
 } from '@ui-kitten/components';
 import {HomeScreenProps} from '../navigation/types';
-// HomeScreen.tsx
-
+import {useToast} from 'react-native-toast-notifications';
 // Simulating search functionality with a mock array of recipes
 const mockRecipes: Recipe[] = [
   {
@@ -43,6 +42,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const [keyword, setKeyword] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([...mockRecipes]);
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
+  const toast = useToast();
 
   const handleSearch = () => {
     console.log('Search:', keyword);
@@ -56,6 +56,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const handleRecipePress = (recipe: Recipe) => {
     navigation.navigate('RecipeDetails', {recipe});
   };
+
+  const handleAddRecipe = (recipe: Recipe) => {
+    setRecipes(prevRecipes => [...prevRecipes, recipe]);
+    toast.show('Recipe added successfully!', {
+      type: 'success',
+      placement: 'bottom',
+      duration: 40000,
+    });
+  };
+
+  const navigateToAddRecipe = () => {
+    navigation.navigate('AddRecipe', {handleAddRecipe});
+  };
+
+  const PlusIcon = (props: IconProps): IconElement => (
+    <Icon {...props} name="plus-circle-outline" />
+  );
 
   const CancelIcon = (props: IconProps): IconElement => (
     <Icon {...props} name="close-square-outline" />
@@ -104,15 +121,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
           </ScrollView>
         </View>
       )}
-      {searchResults.length > 0 && (
-        <Layout style={styles.btnContainer}>
+      <Layout style={styles.btnContainer}>
+        {searchResults.length > 0 ? (
           <Button
             onPress={() => setSearchResults([])}
             accessoryRight={CancelIcon}>
             Cancel Search
           </Button>
-        </Layout>
-      )}
+        ) : (
+          <Button onPress={navigateToAddRecipe} accessoryRight={PlusIcon}>
+            Add Recipe
+          </Button>
+        )}
+      </Layout>
     </Layout>
   );
 };
