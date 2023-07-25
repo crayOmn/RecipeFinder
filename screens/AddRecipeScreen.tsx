@@ -1,8 +1,19 @@
 // AddRecipeScreen.tsx
 
-import React, {useState} from 'react';
-import {StyleSheet, Image} from 'react-native';
-import {Button, Input, Layout, Text} from '@ui-kitten/components';
+import React, {useEffect, useState} from 'react';
+import {StyleSheet, Image, ScrollView, View} from 'react-native';
+import {
+  Button,
+  Icon,
+  IconElement,
+  IconProps,
+  IndexPath,
+  Input,
+  Layout,
+  Select,
+  SelectItem,
+  Text,
+} from '@ui-kitten/components';
 import {
   ImagePickerResponse,
   ImageLibraryOptions,
@@ -10,27 +21,69 @@ import {
 } from 'react-native-image-picker';
 import {AddRecipeScreenProps} from '../navigation/types';
 import {Recipe} from '../components/RecipeCard';
-import { makeEventNotifier } from '../utils/EventListener';
+import {makeEventNotifier} from '../utils/EventListener';
+import {
+  Controller,
+  useForm,
+  useFieldArray,
+  Noop,
+  RefCallBack,
+  ControllerRenderProps,
+} from 'react-hook-form';
+import axios from 'axios';
 
-const newRecipeNotifier = makeEventNotifier<Recipe>("newRecipe");
+const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
+
+type Category = {
+  strCategory: string;
+};
 
 const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
   navigation,
   route,
 }) => {
-  const [title, setTitle] = useState('');
-  const [ingredients, setIngredients] = useState('');
-  const [description, setDescription] = useState('');
   const [imageUri, setImageUri] = useState<string | undefined>();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const {control, handleSubmit, formState} = useForm<Recipe>();
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = React.useState<
+    IndexPath | IndexPath[]
+  >(new IndexPath(0));
 
-  const handleAddRecipe = () => {
-    if (title && ingredients && description && imageUri) {
+  const {append, remove, fields} = useFieldArray({
+    control,
+    name: 'ingredients',
+  });
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        'https://www.themealdb.com/api/json/v1/1/categories.php',
+      );
+      setCategories(response.data.categories);
+    } catch (error) {
+      // Handle error in fetching data
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    append(['', '']);
+    fetchCategories();
+  }, []);
+
+  const handleAddRecipe = (data: Recipe) => {
+    const {title, ingredients, instructions} = data;
+    if (title && ingredients && instructions && imageUri) {
       const newRecipe: Recipe = {
+        id: Math.random().toString(),
         title,
         ingredients,
-        description,
+        category: '',
         image: imageUri,
-        isNew: true,
+        instructions,
       };
       newRecipeNotifier.notify(newRecipe);
       navigation.goBack();
@@ -58,38 +111,155 @@ const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
     });
   };
 
+  const PlusIcon = (props: IconProps): IconElement => (
+    <Icon {...props} name="plus-circle-outline" />
+  );
+  const TrashIcon = (props: IconProps): IconElement => (
+    <Icon {...props} name="trash-2-outline" />
+  );
+
+  const handleCategorySelection = (
+    index: IndexPath | IndexPath[],
+    field: ControllerRenderProps<Recipe, 'category'>,
+  ) => {
+    const selectedCategory = Array.isArray(index)
+      ? categories[index[0].row].strCategory
+      : categories[index.row].strCategory;
+
+    setSelectedCategoryIndex(index);
+    field.onChange(selectedCategory);
+  };
+
   return (
     <Layout style={styles.container}>
       <Text category="h4" style={styles.heading}>
         Add Recipe
       </Text>
-      {imageUri && <Image source={{uri: imageUri}} style={styles.image} />}
-      <Button onPress={handleSelectImage}>Select Image</Button>
-      <Input
-        label="Title"
-        placeholder="Enter recipe title"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
-      <Input
-        label="Ingredients"
-        placeholder="Enter recipe ingredients"
-        value={ingredients}
-        onChangeText={setIngredients}
-        style={styles.input}
-        multiline
-      />
-      <Input
-        label="Description"
-        placeholder="Enter recipe description"
-        value={description}
-        onChangeText={setDescription}
-        style={styles.input}
-        multiline
-      />
+      <ScrollView style={{flex: 1, marginBottom: 50}}>
+        {imageUri && <Image source={{uri: imageUri}} style={styles.image} />}
+        <Button onPress={handleSelectImage}>Select Image</Button>
+        <Controller
+          control={control}
+          render={({field}) => (
+            <Input
+              {...field}
+              label="Title"
+              placeholder="Enter the recipe title"
+              status={formState.errors.title ? 'danger' : 'basic'} // Access errors through formState
+              caption={formState.errors.title?.message} // Access errors through formState
+              style={styles.input}
+              onChangeText={field.onChange}
+              value={field.value}
+            />
+          )}
+          name="title"
+          rules={{
+            required: 'Title is required',
+          }}
+          defaultValue=""
+        />
+        {/* Category */}
+        <Controller
+          control={control}
+          render={({field}) => (
+            <Select
+              {...field}
+              label="Category"
+              placeholder="Select a category"
+              value={field.value}
+              onSelect={(index: IndexPath | IndexPath[]) =>
+                handleCategorySelection(index, field)
+              }>
+              {categories.map((category, index) => (
+                <SelectItem key={index} title={category.strCategory} />
+              ))}
+            </Select>
+          )}
+          name="category"
+          rules={{
+            required: 'Category is required',
+          }}
+        />
+        <Controller
+          control={control}
+          render={({field}) => (
+            <Input
+              {...field}
+              label="instructions"
+              placeholder="Enter the recipe instructions"
+              onChangeText={field.onChange}
+              value={field.value}
+              status={formState.errors.instructions ? 'danger' : 'basic'} // Access errors through formState
+              caption={formState.errors.instructions?.message} // Access errors through formState
+              style={styles.input}
+            />
+          )}
+          name="instructions"
+          rules={{
+            required: 'Instructions is required',
+          }}
+          defaultValue=""
+        />
+        {/* Ingredients */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 16,
+            marginBottom: 8,
+          }}>
+          <Text category="h6">Ingredients</Text>
+          <Button
+            onPress={() => append('')}
+            appearance="ghost"
+            accessoryLeft={PlusIcon}
+          />
+        </View>
+        {fields.map((field, index) => (
+          <View
+            key={field.id}
+            style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Controller
+              control={control}
+              render={({field}) => (
+                <Input
+                  {...field}
+                  label={`Ingredient ${index + 1}`}
+                  placeholder="Enter an ingredient"
+                  status={
+                    formState.errors.ingredients &&
+                    formState.errors.ingredients[index]
+                      ? 'danger'
+                      : 'basic'
+                  }
+                  caption={
+                    formState.errors.ingredients &&
+                    formState.errors.ingredients[index]?.message
+                  }
+                  onChangeText={field.onChange}
+                  style={styles.input}
+                />
+              )}
+              name={`ingredients.${index}`}
+              rules={{
+                required: 'Ingredient is required',
+              }}
+              defaultValue=""
+            />
+            {index ? (
+              <Button
+                onPress={() => remove(index)}
+                style={{marginTop: 15}}
+                appearance="ghost"
+                status="danger"
+                accessoryLeft={TrashIcon}
+              />
+            ) : null}
+          </View>
+        ))}
+      </ScrollView>
       <Layout style={styles.addBtnContainer}>
-        <Button onPress={handleAddRecipe}>Add Recipe</Button>
+        <Button onPress={handleSubmit(handleAddRecipe)}>Add Recipe</Button>
       </Layout>
     </Layout>
   );
@@ -104,12 +274,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   image: {
-    width: 150,
-    height: 150,
+    width: '100%',
+    height: 200,
     resizeMode: 'cover',
     marginBottom: 16,
   },
   input: {
+    flex: 1,
     marginVertical: 10,
   },
   addBtnContainer: {

@@ -3,11 +3,12 @@ import { Card, Text, Button } from '@ui-kitten/components';
 import { Image, StyleSheet } from "react-native";
 
 export type Recipe = {
-  image: any;
+  id: string;
   title: string;
-  description: string;
-  ingredients: string;
-  isNew?: boolean;
+  category: string;
+  instructions: string;
+  ingredients: string[];
+  image: any;
 };
 
 interface RecipeCardProps {
@@ -18,7 +19,7 @@ interface RecipeCardProps {
 const RecipeCard: React.FC<RecipeCardProps> = ({ onPress, recipe }) => {
   return (
     <Card style={styles.card}>
-      <Image source={recipe.isNew ? { uri: recipe.image } : recipe.image} style={styles.recipeImage} />
+      <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
       <Text category="h6" style={styles.recipeTitle}>
         {recipe.title}
       </Text>
