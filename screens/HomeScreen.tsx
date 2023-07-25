@@ -1,5 +1,11 @@
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
+import React, {useEffect, useRef, useState} from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  FlatList,
+} from 'react-native';
 import RecipeCard, {Recipe} from '../components/RecipeCard';
 import {
   Button,
@@ -12,45 +18,59 @@ import {
 } from '@ui-kitten/components';
 import {HomeScreenProps} from '../navigation/types';
 import {useToast} from 'react-native-toast-notifications';
-import { makeEventNotifier } from '../utils/EventListener';
+import {makeEventNotifier} from '../utils/EventListener';
+import axios, {CancelTokenSource} from 'axios';
+import mapApiResponseToRecipe from '../utils/objMapper';
 
-// Simulating search functionality with a mock array of recipes
-const mockRecipes: Recipe[] = [
-  {
-    title: 'Pasta Carbonara',
-    image: require('../assets/pasta_carbonara.jpeg'),
-    ingredients: 'Pasta, eggs, bacon, Parmesan cheese',
-    description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec hendrerit viverra augue et rutrum. Ut consequat efficitur ex vel tempor. Morbi velit lectus, rhoncus et suscipit vel, eleifend scelerisque leo. Donec semper vulputate enim non convallis. Nam laoreet iaculis leo nec porttitor. Praesent ac rhoncus nulla, et efficitur nulla.',
-  },
-  {
-    title: 'Chicken Curry',
-    image: require('../assets/chicken-curry.jpg'),
-    ingredients: 'Chicken, curry powder, coconut milk, vegetables',
-    description:
-      'Morbi ac lobortis elit. Quisque tempor et risus et tristique. Nunc placerat elit vel vehicula elementum. Sed posuere, justo sed commodo aliquet, ex urna blandit sapien, non dictum nisl sapien id mauris. Mauris dictum, massa at rhoncus pellentesque, ex mi bibendum mi, eget varius elit sapien ac lectus. Ut ut ullamcorper eros.',
-  },
-  {
-    title: 'Chocolate Chip Cookies',
-    image: require('../assets/chocolate-chip-cookies.jpg'),
-    ingredients: 'Flour, butter, sugar, chocolate chips',
-    description:
-      'Pellentesque non dolor in nibh ultricies aliquam sit amet eu libero. In a accumsan tortor. Ut dictum lacinia ipsum at malesuada. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut blandit egestas enim, ac finibus turpis tristique finibus. Morbi ullamcorper mauris ligula, sed egestas elit dignissim dignissim.',
-  },
-  // Add more mock recipes here
-];
-const newRecipeNotifier = makeEventNotifier<Recipe>("newRecipe");
+const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const [keyword, setKeyword] = useState('');
-  const [recipes, setRecipes] = useState<Recipe[]>([...mockRecipes]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
   const toast = useToast();
+  const cancelTokenSource = useRef<CancelTokenSource | null>(null);
+
+  const fetchRecipes = async () => {
+    try {
+      // Cancel any previous requests before making a new one
+      if (cancelTokenSource.current) {
+        cancelTokenSource.current.cancel();
+      }
+      cancelTokenSource.current = axios.CancelToken.source();
+      const response = await axios.get(
+        'https://www.themealdb.com/api/json/v1/1/search.php?f=c',
+        {
+          cancelToken: cancelTokenSource.current.token,
+        },
+      );
+      setRecipes(mapApiResponseToRecipe(response.data.meals));
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        // Request was canceled, do nothing
+      } else {
+        // Handle other errors in fetching data
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecipes();
+    return () => {
+      // Cancel the request when the component unmounts
+      if (cancelTokenSource.current) {
+        cancelTokenSource.current.cancel();
+      }
+    };
+  }, []);
 
   const handleSearch = () => {
     console.log('Search:', keyword);
 
-    const filteredResults = mockRecipes.filter(recipe =>
+    const filteredResults = recipes.filter(recipe =>
       recipe.title.toLowerCase().includes(keyword.toLowerCase()),
     );
     setSearchResults(filteredResults);
@@ -60,7 +80,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     navigation.navigate('RecipeDetails', {recipe});
   };
 
-  newRecipeNotifier.useEventListener((recipe) => {
+  newRecipeNotifier.useEventListener(recipe => {
     setRecipes(prevRecipes => [...prevRecipes, recipe]);
     toast.show('Recipe added successfully!', {
       type: 'success',
@@ -68,7 +88,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
       duration: 40000,
     });
   }, []);
-  
+
   const navigateToAddRecipe = () => {
     navigation.navigate('AddRecipe');
   };
@@ -83,9 +103,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
 
   return (
     <Layout style={styles.layout}>
-      <Text category="h4" style={styles.heading}>
-        Recipe Finder
-      </Text>
       <View style={styles.searchBarContainer}>
         <Input
           placeholder="Search recipes..."
@@ -97,32 +114,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
           Search
         </Button>
       </View>
-      {searchResults.length > 0 ? (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsHeading}>Search Results:</Text>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {searchResults.map((recipe, index) => (
-              <RecipeCard
-                key={index}
-                recipe={recipe}
-                onPress={handleRecipePress}
-              />
-            ))}
-          </ScrollView>
-        </View>
+      {loading ? (
+        <ActivityIndicator size="large" color="#000" />
       ) : (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsHeading}>All Recipes:</Text>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {recipes.map((recipe, index) => (
-              <RecipeCard
-                key={index}
-                recipe={recipe}
-                onPress={handleRecipePress}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        <FlatList
+          data={searchResults.length > 0 ? searchResults : recipes}
+          keyExtractor={item => item.id}
+          renderItem={({item, index}) => (
+            <RecipeCard key={index} recipe={item} onPress={handleRecipePress} />
+          )}
+          contentContainerStyle={styles.scrollContent}
+        />
       )}
       <Layout style={styles.btnContainer}>
         {searchResults.length > 0 ? (
@@ -173,12 +175,9 @@ const styles = StyleSheet.create({
     color: '#777',
   },
   searchBarContainer: {
-    position: 'absolute',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    top: 0,
-    width: '100%',
-    paddingVertical: 8,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
   },
@@ -188,6 +187,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 70,
   },
   btnContainer: {
     position: 'absolute',
