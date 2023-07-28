@@ -21,11 +21,11 @@ import {useToast} from 'react-native-toast-notifications';
 import {makeEventNotifier} from '../utils/EventListener';
 import axios, {CancelTokenSource} from 'axios';
 import mapApiResponseToRecipe from '../utils/objMapper';
+import SearchBar from '../components/SearchBar';
 
 const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
-  const [keyword, setKeyword] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
@@ -55,7 +55,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     } finally {
       setLoading(false);
     }
-  };
 
   useEffect(() => {
     fetchRecipes();
@@ -66,15 +65,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
       }
     };
   }, []);
-
-  const handleSearch = () => {
-    console.log('Search:', keyword);
-
-    const filteredResults = recipes.filter(recipe =>
-      recipe.title.toLowerCase().includes(keyword.toLowerCase()),
-    );
-    setSearchResults(filteredResults);
-  };
 
   const handleRecipePress = (recipe: Recipe) => {
     navigation.navigate('RecipeDetails', {recipe});
@@ -103,17 +93,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
 
   return (
     <Layout style={styles.layout}>
-      <View style={styles.searchBarContainer}>
-        <Input
-          placeholder="Search recipes..."
-          accessoryLeft={props => <Icon {...props} name="search-outline" />}
-          style={styles.searchInput}
-          onChangeText={nextValue => setKeyword(nextValue)}
-        />
-        <Button onPress={handleSearch} appearance="ghost">
-          Search
-        </Button>
-      </View>
+      <SearchBar setSearchResults={setSearchResults} setLoading={setLoading} />
+
       {loading ? (
         <ActivityIndicator size="large" color="#000" />
       ) : (
@@ -127,13 +108,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
         />
       )}
       <Layout style={styles.btnContainer}>
-        {searchResults.length > 0 ? (
-          <Button
-            onPress={() => setSearchResults([])}
-            accessoryRight={CancelIcon}>
-            Cancel Search
-          </Button>
-        ) : (
+        {searchResults.length == 0 && (
           <Button onPress={navigateToAddRecipe} accessoryRight={PlusIcon}>
             Add Recipe
           </Button>
@@ -173,17 +148,6 @@ const styles = StyleSheet.create({
   recipeIngredients: {
     marginTop: 4,
     color: '#777',
-  },
-  searchBarContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  searchInput: {
-    borderRadius: 10,
-    width: '80%',
   },
   scrollContent: {
     flexGrow: 1,
