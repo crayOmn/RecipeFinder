@@ -26,7 +26,6 @@ import SearchBar from '../components/SearchBar';
 const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
-  const [keyword, setKeyword] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
@@ -56,7 +55,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     } finally {
       setLoading(false);
     }
-  };
 
   useEffect(() => {
     fetchRecipes();
@@ -96,6 +94,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   return (
     <Layout style={styles.layout}>
       <SearchBar setSearchResults={setSearchResults} setLoading={setLoading} />
+
       {loading ? (
         <ActivityIndicator size="large" color="#000" />
       ) : (
