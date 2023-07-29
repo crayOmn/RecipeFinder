@@ -1,8 +1,6 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect} from 'react';
 import {
-  View,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
   FlatList,
 } from 'react-native';
@@ -11,73 +9,29 @@ import {
   Button,
   Layout,
   Text,
-  Input,
   Icon,
   IconElement,
   IconProps,
 } from '@ui-kitten/components';
 import {HomeScreenProps} from '../navigation/types';
-import {useToast} from 'react-native-toast-notifications';
-import {makeEventNotifier} from '../utils/EventListener';
-import axios, {CancelTokenSource} from 'axios';
-import mapApiResponseToRecipe from '../utils/objMapper';
 import SearchBar from '../components/SearchBar';
-
-const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
+import {useDispatch, useSelector} from 'react-redux';
+import {fetchRecipesFromAPI} from '../redux/slices/recipeSlice';
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchResults, setSearchResults] = useState<Recipe[]>([]);
-  const toast = useToast();
-  const cancelTokenSource = useRef<CancelTokenSource | null>(null);
 
-  const fetchRecipes = async () => {
-    try {
-      // Cancel any previous requests before making a new one
-      if (cancelTokenSource.current) {
-        cancelTokenSource.current.cancel();
-      }
-      cancelTokenSource.current = axios.CancelToken.source();
-      const response = await axios.get(
-        'https://www.themealdb.com/api/json/v1/1/search.php?f=c',
-        {
-          cancelToken: cancelTokenSource.current.token,
-        },
-      );
-      setRecipes(mapApiResponseToRecipe(response.data.meals));
-    } catch (error) {
-      if (axios.isCancel(error)) {
-        // Request was canceled, do nothing
-      } else {
-        // Handle other errors in fetching data
-      }
-    } finally {
-      setLoading(false);
-    }
+  const dispatch = useDispatch();
+  const {recipes, searchResult, loading, error} = useSelector(
+    (state: any) => state.recipes,
+  );
 
   useEffect(() => {
-    fetchRecipes();
-    return () => {
-      // Cancel the request when the component unmounts
-      if (cancelTokenSource.current) {
-        cancelTokenSource.current.cancel();
-      }
-    };
-  }, []);
+    dispatch(fetchRecipesFromAPI() as any);
+  }, [dispatch]);
 
   const handleRecipePress = (recipe: Recipe) => {
     navigation.navigate('RecipeDetails', {recipe});
   };
-
-  newRecipeNotifier.useEventListener(recipe => {
-    setRecipes(prevRecipes => [...prevRecipes, recipe]);
-    toast.show('Recipe added successfully!', {
-      type: 'success',
-      placement: 'bottom',
-      duration: 40000,
-    });
-  }, []);
 
   const navigateToAddRecipe = () => {
     navigation.navigate('AddRecipe');
@@ -87,19 +41,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
     <Icon {...props} name="plus-circle-outline" />
   );
 
-  const CancelIcon = (props: IconProps): IconElement => (
-    <Icon {...props} name="close-square-outline" />
-  );
 
   return (
     <Layout style={styles.layout}>
-      <SearchBar setSearchResults={setSearchResults} setLoading={setLoading} />
-
+      <SearchBar />
+      {error && <Text>{error}</Text>}
       {loading ? (
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator color="#000" />
       ) : (
         <FlatList
-          data={searchResults.length > 0 ? searchResults : recipes}
+          data={searchResult.length > 0 ? searchResult : recipes}
           keyExtractor={item => item.id}
           renderItem={({item, index}) => (
             <RecipeCard key={index} recipe={item} onPress={handleRecipePress} />
@@ -108,7 +59,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
         />
       )}
       <Layout style={styles.btnContainer}>
-        {searchResults.length == 0 && (
+        {searchResult.length == 0 && (
           <Button onPress={navigateToAddRecipe} accessoryRight={PlusIcon}>
             Add Recipe
           </Button>

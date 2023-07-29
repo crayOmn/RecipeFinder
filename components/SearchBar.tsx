@@ -1,49 +1,22 @@
 import {StyleSheet, View} from 'react-native';
-import React, {useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {Input, Button, Icon} from '@ui-kitten/components';
-import {Recipe} from './RecipeCard';
-import axios, {CancelTokenSource} from 'axios';
-import mapApiResponseToRecipe from '../utils/objMapper';
+import {useDispatch} from 'react-redux';
+import {searchRecipesFromAPI, cancelSearch} from '../redux/slices/recipeSlice';
 
-interface SearchBarProps {
-  setSearchResults: (result: Recipe[]) => void;
-  setLoading: (loading: boolean) => void;
-}
-
-const SearchBar: React.FC<SearchBarProps> = ({setSearchResults, setLoading}) => {
+const SearchBar: React.FC = () => {
   const [keyword, setKeyword] = useState('');
-  const cancelTokenSource = useRef<CancelTokenSource | null>(null);
 
-  const searchRecipes = async (searchKeyword: string) => {
-    try {
-      setKeyword(searchKeyword);
-      setLoading(true);
-      // Cancel any previous requests before making a new one
-      if (cancelTokenSource.current) {
-        cancelTokenSource.current.cancel();
-      }
-      cancelTokenSource.current = axios.CancelToken.source();
-      const response = await axios.get(
-        'https://www.themealdb.com/api/json/v1/1/search.php?s='+searchKeyword,
-        {
-          cancelToken: cancelTokenSource.current.token,
-        },
-      );
-      setSearchResults(mapApiResponseToRecipe(response.data.meals));
-    } catch (error) {
-      if (axios.isCancel(error)) {
-        // Request was canceled, do nothing
-      } else {
-        // Handle other errors in fetching data
-      }
-    } finally {
-      setLoading(false);
-    }
+  const dispatch = useDispatch();
+
+  const onChangeText = (searchKeyword: string) => {
+    setKeyword(searchKeyword);
+    dispatch(searchRecipesFromAPI(searchKeyword) as any);
   };
 
-  const cancelSearch = () => {
+  const onCancelSearch = () => {
     setKeyword('');
-    setSearchResults([]);
+    dispatch(cancelSearch());
   };
 
   return (
@@ -53,9 +26,9 @@ const SearchBar: React.FC<SearchBarProps> = ({setSearchResults, setLoading}) => 
         accessoryLeft={props => <Icon {...props} name="search-outline" />}
         style={styles.searchInput}
         value={keyword}
-        onChangeText={nextValue => searchRecipes(nextValue)}
+        onChangeText={nextValue => onChangeText(nextValue)}
       />
-      <Button onPress={cancelSearch} appearance="ghost">
+      <Button onPress={onCancelSearch} appearance="ghost">
         Cancel
       </Button>
     </View>
