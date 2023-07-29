@@ -1,6 +1,15 @@
 import React from 'react';
-import { Card, Text, Button } from '@ui-kitten/components';
-import { Image, StyleSheet } from "react-native";
+import {
+  Card,
+  Text,
+  Button,
+  IconElement,
+  Icon,
+  IconProps,
+} from '@ui-kitten/components';
+import {Image, StyleSheet, View, ImageProps} from 'react-native';
+import {useDispatch} from 'react-redux';
+import {markFavorite} from '../redux/slices/recipeSlice';
 
 export type Recipe = {
   id: string;
@@ -9,21 +18,50 @@ export type Recipe = {
   instructions: string;
   ingredients: string[];
   image: any;
+  favorite?: boolean;
 };
 
 interface RecipeCardProps {
   onPress: (recipe: Recipe) => void;
-  recipe: Recipe
+  recipe: Recipe;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ onPress, recipe }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({onPress, recipe}) => {
+  const favIconRef = React.useRef<Icon<Partial<ImageProps>>>();
+  const dispatch = useDispatch();
+
+  const StarIcon = (props: IconProps): IconElement => (
+    <Icon
+      {...props}
+      name={recipe.favorite ? 'heart' : 'heart-outline'}
+      ref={favIconRef}
+      animationConfig={{cycles: 1}}
+      animation="pulse"
+    />
+  );
+
+  const onPresFav = () => {
+    favIconRef.current?.startAnimation();
+    dispatch(markFavorite(recipe.id));
+  };
+
   return (
     <Card style={styles.card}>
-      <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-      <Text category="h6" style={styles.recipeTitle}>
-        {recipe.title}
-      </Text>
-      <Button style={styles.readMoreButton} onPress={() => onPress(recipe)}>Read More</Button>
+      <Image source={{uri: recipe.image}} style={styles.recipeImage} />
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <Text category="h6" style={styles.recipeTitle}>
+          {recipe.title}
+        </Text>
+        <Button
+          appearance="ghost"
+          accessoryLeft={StarIcon}
+          onPress={onPresFav}
+          status='danger'
+        />
+      </View>
+      <Button style={styles.readMoreButton} onPress={() => onPress(recipe)}>
+        Read More
+      </Button>
     </Card>
   );
 };
