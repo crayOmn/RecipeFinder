@@ -42,6 +42,9 @@ const recipeSlice = createSlice({
   name: 'recipes',
   initialState,
   reducers: {
+    addRecipe: (state, action) => {
+      state.recipes.push(action.payload);
+    },
     markFavorite: (state, action) => {
       const recipeId = action.payload;
       const recipe = state.recipes.find(r => r.id === recipeId);
@@ -83,6 +86,6 @@ const recipeSlice = createSlice({
   },
 });
 
-export const {markFavorite, cancelSearch} = recipeSlice.actions;
+export const {markFavorite, cancelSearch, addRecipe} = recipeSlice.actions;
 
 export default recipeSlice.reducer;

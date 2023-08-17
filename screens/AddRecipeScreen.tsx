@@ -21,18 +21,15 @@ import {
 } from 'react-native-image-picker';
 import {AddRecipeScreenProps} from '../navigation/types';
 import {Recipe} from '../components/RecipeCard';
-import {makeEventNotifier} from '../utils/EventListener';
 import {
   Controller,
   useForm,
   useFieldArray,
-  Noop,
-  RefCallBack,
   ControllerRenderProps,
 } from 'react-hook-form';
 import axios from 'axios';
-
-const newRecipeNotifier = makeEventNotifier<Recipe>('newRecipe');
+import {useDispatch} from 'react-redux';
+import {addRecipe} from '../redux/slices/recipeSlice';
 
 type Category = {
   strCategory: string;
@@ -42,6 +39,7 @@ const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
   navigation,
   route,
 }) => {
+  const dispatch = useDispatch();
   const [imageUri, setImageUri] = useState<string | undefined>();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +83,7 @@ const AddRecipeScreen: React.FC<AddRecipeScreenProps> = ({
         image: imageUri,
         instructions,
       };
-      newRecipeNotifier.notify(newRecipe);
+      dispatch(addRecipe(newRecipe));
       navigation.goBack();
     } else {
       // Display an error message or show a toast indicating missing fields
