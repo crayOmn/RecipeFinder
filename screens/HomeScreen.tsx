@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   StyleSheet,
   ActivityIndicator,
@@ -17,17 +17,30 @@ import {HomeScreenProps} from '../navigation/types';
 import SearchBar from '../components/SearchBar';
 import {useDispatch, useSelector} from 'react-redux';
 import {fetchRecipesFromAPI} from '../redux/slices/recipeSlice';
+import NetInfo from '@react-native-community/netinfo';
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
-
+  const [isAppOnline, setIsAppOnline] = useState<boolean | null>(true);
   const dispatch = useDispatch();
   const {recipes, searchResult, loading, error} = useSelector(
     (state: any) => state.recipes,
   );
 
   useEffect(() => {
-    dispatch(fetchRecipesFromAPI() as any);
-  }, [dispatch]);
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsAppOnline(state.isConnected);
+    });
+  
+    return () => {
+      unsubscribe(); // Unsubscribe when the component unmounts
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAppOnline) {
+      dispatch(fetchRecipesFromAPI() as any);
+    }
+  }, [isAppOnline]);
 
   const handleRecipePress = (recipe: Recipe) => {
     navigation.navigate('RecipeDetails', {recipe});
